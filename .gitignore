@@ -1,0 +1,8 @@
+# alles ignorieren
+*
+
+# außer diese Dateien:
+!.gitignore
+!blarksbackup.sh
+!blackrsbackup.config
+!readme.md
