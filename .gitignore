@@ -4,5 +4,5 @@
 # außer diese Dateien:
 !.gitignore
 !blarksbackup.sh
-!blackrsbackup.config
+!blarksbackup.config
 !readme.md
