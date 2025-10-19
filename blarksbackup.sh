@@ -86,7 +86,12 @@ parse_argumente() {
       *) QUELLE="$ARG" ;;
     esac
   done
-  [[ -z "$QUELLE" ]] && QUELLE="$DEFAULT_HOST"
+
+  # 🔧 Falls kein Host übergeben wurde, aktuellen Rechnernamen verwenden
+  if [[ -z "$QUELLE" ]]; then
+    QUELLE="$(hostname)"
+    echo "🧠 Kein Host angegeben – verwende lokalen Hostnamen: $QUELLE"
+  fi
 
   ZIEL="${BACKUP_ROOT}/${QUELLE}"
   ZIELVERZEICHNIS="$ZIEL/$DATUM"
@@ -97,6 +102,8 @@ parse_argumente() {
     exit 1
   }
 }
+
+
 
 lade_ssh_config() {
   SSHCONFIG=$(ssh -G "$QUELLE" 2>/dev/null)
@@ -140,9 +147,39 @@ lade_config_datei() {
     return
   fi
 
+  # Block ausführen, um Variablen zu setzen
   eval "$BLOCK"
+
+  # Fallbacks falls nicht gesetzt
+  [[ -z "${REMOTE_VERZEICHNISSE[*]}" ]] && {
+    echo "⚠️  REMOTE_VERZEICHNISSE fehlen in der Konfiguration – nutze Standardliste."
+    REMOTE_VERZEICHNISSE=( "/etc" "/home" "/opt" )
+  }
+
+  # Backup-Ziel ggf. aus Config überschreiben
+  if [[ -n "$BACKUP_ROOT_CONF" ]]; then
+    BACKUP_ROOT="$BACKUP_ROOT_CONF"
+    echo "📦 Backup-Ziel aus Config übernommen: $BACKUP_ROOT"
+  fi
+
+  # Quelle ggf. aus Config überschreiben (z. B. Alias oder FQDN)
+  if [[ -n "$QUELLE_CONF" ]]; then
+    QUELLE="$QUELLE_CONF"
+    echo "🌐 Backup-Quelle aus Config übernommen: $QUELLE"
+  fi
+
+  # Zielpfade neu berechnen
+  ZIEL="${BACKUP_ROOT}/${QUELLE}"
+  ZIELVERZEICHNIS="$ZIEL/$DATUM"
+  LOGFILE="$ZIEL/backup_$DATUM.log"
+  mkdir -p "$ZIELVERZEICHNIS" || {
+    echo "🛑 Fehler: Konnte '$ZIELVERZEICHNIS' nicht anlegen."
+    exit 1
+  }
+
   echo "✅ Konfiguration für Host '$QUELLE' geladen (${#REMOTE_VERZEICHNISSE[@]} Verzeichnisse)"
 }
+
 
 # =====================================================
 # 🚦 Moduserkennung vor Backupstart
